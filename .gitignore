@@ -1,0 +1,56 @@
+ebin/*
+deps/*
+rel/*
+*.log
+*.dump
+log
+*.data
+.vagrant
+
+*.iml
+*.ipr
+*.iws
+.idea/
+Session.vim
+
+# node specific
+npm-debug.log
+node_modules/
+.lock-wscript
+build/node_modules/grunt/node_modules/glob/build
+
+# SublimeText project files
+/*.sublime-project
+*.sublime-workspace
+
+# Eclipse
+.project
+.metadata
+local.properties
+.settings/
+*.launch
+*~.nib
+*.bak
+tmp/**
+tmp/**/*
+
+# OSX Specific
+.DS_Store
+._*
+.Spotlight-V100
+.Trashes
+
+# Windows Specific
+Thumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# Nova specific
+dist/
+
+# IDEA Specific
+.idea
+
+*.dump
+log
+*.data
