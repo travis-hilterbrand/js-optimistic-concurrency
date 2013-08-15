@@ -1,7 +1,7 @@
 js-optimistic-concurrency
 ======
 
-Test App for demonstrating optimistic concurrency
+Test app for demonstrating optimistic concurrency
 
 Uses node.js as a backend
 

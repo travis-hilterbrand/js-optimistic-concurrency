@@ -7,7 +7,8 @@
   },
   "dependencies": {
     "express": "3.0.0alpha1",
-    "underscore": "~1.4.3"
+    "underscore": "~1.4.3",
+    "node-uuid": "~1.4.0"
   },
   "devDependencies": {
     "supervisor": "*"

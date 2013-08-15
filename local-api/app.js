@@ -37,22 +37,57 @@ var Tests = {
 
 // Routes
 // ------
+var getModel = function(req, res) {
+  var model = Tests[req.params.id];
+  if (!model) {
+    res.status(404).send('{error:"Unable to find model"}');
+    return null;
+  }
+  return model;
+};
+
 var routes = {};
+routes.getAll = function(req, res) {
+  console.log(req.body);
+
+  res.contentType('application/json');
+  res.status(200).send(JSON.stringify(Tests));
+};
 routes.get = function(req, res) {
   console.log(req.body);
-
   res.contentType('application/json');
-  res.status(200).send(Tests['test-1']);
+
+  var model = getModel(req, res);
+  if (!model) return;
+
+  res.status(200).send(JSON.stringify(model));
 };
 routes.put = function(req, res) {
+  console.log('put', req.params);
   console.log(req.body);
-
   res.contentType('application/json');
-  res.status(200).send('{}');
+
+  var model = getModel(req, res);
+  if (!model) return;
+  if (req.body.hash !== model.hash) {
+    // to keep things simple, just use hash saved in the model
+    // see resources in the README for production
+    var data = _.extend(model, {
+      error:'Invalid hash'
+    });
+    res.status(412).send(JSON.stringify(data));
+    return;
+  }
+
+  model = req.body;
+  model.hash = _.uniqueId('hash-');
+  Tests[model.id] = model;
+  res.status(200).send(JSON.stringify(model));
 };
 
-app.get('/Test', routes.get);
-app.put('/Test', routes.put);
+app.get('/Test', routes.getAll);
+app.get('/Test/:id', routes.get);
+app.put('/Test/:id', routes.put);
 
 // Startup
 // ------
