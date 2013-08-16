@@ -1,7 +1,9 @@
 js-optimistic-concurrency
 ======
 
-Test app for demonstrating optimistic concurrency
+Test app for demonstrating optimistic concurrency.
+The focus is on presentation to the user.  The backend implementation is simple and not important - see References for proper implementation.
+
 
 Uses node.js as a backend
 
