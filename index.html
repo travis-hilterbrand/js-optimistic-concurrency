@@ -6,15 +6,183 @@
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>js-optimistic-concurrency</title>
 
+  <link rel="stylesheet" type="text/css" href="vendor/bootstrap.css">
+  <link rel="stylesheet" type="text/css" href="vendor/bootstrap-responsive.css">
+  <link rel="stylesheet" type="text/css" href="vendor/jquery.pnotify.default.css" media="all"/>
+
   <style type="text/css">
   </style>
 </head>
 
 <body>
+
+  <div id="dialog-conflict" class="modal hide fade">
+    <div class="modal-header">
+      <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+      <h3>Unable to save changes</h3>
+    </div>
+    <div class="modal-body">
+      <p>Another user has made changes to this record while you were editing.</p>
+    </div>
+    <div class="modal-footer">
+      <a href="#" data-bind="click: onConflictReviewClick" class="btn btn-primary" data-dismiss="modal">Review my changes</a>
+      <a href="#" data-bind="click: onConflictOverwriteClick" class="btn btn-danger" data-dismiss="modal">Overwrite with my version</a>
+    </div>
+  </div>
+
+  <div class="container">
+
+    <div class="row">
+      <div class="form-horizontal span6">
+        <fieldset>
+          <legend>Legend</legend>
+
+          <div class="control-group">
+            <label class="control-label" for="field_id">ID</label>
+            <div class="controls">
+            <input name="field_id" type="text" data-bind="value: id" readonly>
+            </div>
+          </div>
+          <div class="control-group">
+            <label class="control-label" for="field_hash">Hash</label>
+            <div class="controls">
+            <input name="field_hash" type="text" data-bind="value: hash" readonly>
+            </div>
+          </div>
+
+          <div id="group-name" class="control-group">
+            <label class="control-label" for="field_name">Name</label>
+            <div class="controls">
+              <input id="field_name" type="text" data-bind="value: name" placeholder="Edit Name">
+              <span class="help-inline hide" data-bind="text: conflict_name"></span>
+            </div>
+          </div>
+          <div class="control-group">
+            <button class="btn btn-primary pull-left" data-bind="click: onSaveClick">Save</button>            
+          </div>
+
+        </fieldset>
+      </div>
+    </div>
+  </div>
+
   <script type="text/javascript" src="//ajax.googleapis.com/ajax/libs/jquery/1.8.3/jquery.min.js"></script>
+  <script type="text/javascript" src="vendor/bootstrap.js"></script>
+  <script type="text/javascript" src="vendor/knockout-2.1.0.js"></script>
+  <script type="text/javascript" src="vendor/jquery.pnotify.js"></script>
   <script type="text/javascript">
+    var apiUrl = 'http://localhost:5550/Test/';
+
+    function loadTest(id) {
+      return $.ajax({
+        url: apiUrl + id        
+      });
+    }
+    function saveTest(model) {
+      return $.ajax({
+        type: 'PUT',
+        url: apiUrl + model.id,
+        crossDomain: true,
+        data: model,
+        dataType: 'json'
+      });
+    }
+    function sendNotify(title, text) {
+      $.pnotify({
+        title: title,
+        text: text,
+        type: 'error',
+        hide: false
+      });
+    }
+    function formatErrorMessage(xhr, status, error) {
+      var errorMessage = '';
+
+      errorMessage += 'Status Code: ' + xhr.status + '\n';
+      if (status) {
+        errorMessage += 'Status: ' + status + '\n';
+      }
+      if (error) {
+        errorMessage += 'Error: ' + error + '\n';
+      }
+      return errorMessage;
+    }
+    function showErrors() {
+      $('#group-name').addClass('error');
+      $('.help-inline').removeClass('hide');          
+    }
+    function clearErrors() {
+      $('.control-group').removeClass('error');
+      $('.help-inline').addClass('hide');
+    }
+
+
     $(document).ready(function() {
 
+      function ViewModel(model) {
+        this.id = ko.observable(model.id);
+        this.name = ko.observable(model.name);
+        this.hash = ko.observable(model.hash);
+        this.conflict_name = ko.observable('');
+        this.conflict_hash = ko.observable('');
+
+        var self = this;
+        this.onSaveClick = function() {
+          clearErrors();
+
+          var model = {id:this.id(),name:this.name(),hash:this.hash()};
+          saveTest(model)
+            .done(function(model) {
+              console.log('save performed');
+
+              // update the hash
+              self.hash(model.hash);
+            })
+            .fail(function(xhr, status, error) {
+              if (xhr.status === 412) {
+                // concurrency problem
+                console.warn('concurrency conflict', arguments);
+
+                // show changes in validation fields
+                var serverModel = JSON.parse(xhr.responseText);
+                self.conflict_name(serverModel.name);
+                self.conflict_hash(serverModel.hash);
+
+                // open dialog
+                $('#dialog-conflict').modal({});
+                return;
+              }
+              console.error('save error', arguments);
+              sendNotify('Save Error', formatErrorMessage(xhr, status, error));
+            });
+        };
+        this.onConflictReviewClick = function() {
+          showErrors();
+        };
+        this.onConflictOverwriteClick = function() {
+          model = {id:self.id(),name:self.name(),hash:self.conflict_hash()};
+          saveTest(model)
+            .done(function(model) {
+              // update the hash
+              self.hash(model.hash);
+              clearErrors();
+            })
+            .fail(function(xhr, status, error) {
+              console.error('overwrite error', arguments);
+              sendNotify('Save Error', formatErrorMessage(xhr, status, error));
+            });
+        };
+      }
+
+      var id = 'test-1';
+      loadTest(id)
+        .done(function(data) {
+          ko.applyBindings(new ViewModel(data));
+        })
+        .fail(function(xhr, status, error) {
+          console.error('load error', arguments);
+          sendNotify('Load Error', formatErrorMessage(xhr, status, error));
+        })
     });
   </script>
 </body>
